@@ -64,7 +64,7 @@ public class JobManagerServiceTest {
     @Test
     public void testGetJobsByUser() {
         JobManagerService jobManager = new JobManagerServiceImpl();
-        ((JobManagerServiceImpl) jobManager).setResourceEstimator(new AdvancedResourceEstimator());
+        ((JobManagerServiceImpl) jobManager).setResourceEstimator(new ComplexResourceEstimator());
 
         JobContext context1 = new JobContext("1", "Test Job 1", "User1", 1, "General", "Content of the job 1", 1, 5);
         JobContext context2 = new JobContext("2", "Test Job 2", "User1", 20, "General", "Content of the job 2", 1, 5);

@@ -76,13 +76,34 @@ public class JobManagerServiceImpl implements JobManagerService {
             System.out.println("剩余资源 : CPU=" + resourceManager.getAvailableCpu() + ", Memory=" + resourceManager.getAvailableMemory() + "MB");
         } else {
             System.out.println("资源不足 : " + context.getName());
-            moveToWaitingQueue(job, requiredCpu, requiredMemory);
+            if (waitingQueue.size() < MAX_WAITING_QUEUE_SIZE && jobQueue.size() < loadQueueSizeFromConfig()) {
+                // 尝试将作业添加到等待队列
+                waitingQueue.add(job);
+                System.out.println("作业已添加到等待队列中 : " + context.getName());
+            } else {
+                // 如果等待队列已满，尝试从工作队列中移除一个作业
+                forceRemoveJob();
+                // 再次尝试添加作业到等待队列
+                if (waitingQueue.size() < MAX_WAITING_QUEUE_SIZE && jobQueue.size() < loadQueueSizeFromConfig()) {
+                    waitingQueue.add(job);
+                    System.out.println("作业已添加到等待队列中 : " + context.getName());
+                } else {
+                    // 如果仍然无法添加，则尝试从工作队列中移除一个作业
+                    forceRemoveJob();
+                    // 如果仍然无法添加，则作业无法执行
+                    System.out.println("资源不足，作业无法执行");
+                }
+            }
         }
         return job;
     }
 
+
+
+
     @Override
     public boolean removeJob(String jobId) {
+
         Job job = findJobById(jobId);
         if (job != null) {
             boolean removed = jobQueue.removeJob(jobId);
@@ -210,84 +231,6 @@ public class JobManagerServiceImpl implements JobManagerService {
         }
     }
 
-
-
-
-    private void freeUpResources(int requiredCpu, int requiredMemory) {
-        // 获取当前所有作业，按优先级降序排序，优先级相同按作业ID排序
-        List<Job> allJobs = jobQueue.getAllJobs();
-        Collections.sort(allJobs, Comparator.comparingInt((Job job) -> job.getContext().getPriority()).reversed().thenComparing((Job job) -> job.getContext().getId()));
-
-        // 尝试释放资源
-        for (Job job : allJobs) {
-            int jobCpu = resourceEstimator.estimateCpu(job);
-            int jobMemory = resourceEstimator.estimateMemory(job);
-            jobQueue.removeJob(job.getContext().getId());
-            waitingQueue.add(job);
-            resourceManager.releaseResources(jobCpu, jobMemory);
-            System.out.println("通过将作业移动到等待队列来释放资源 : " + job.getContext().getName());
-            System.out.println("剩余资源 : CPU=" + resourceManager.getAvailableCpu() + ", Memory=" + resourceManager.getAvailableMemory() + "MB");
-
-            if (resourceManager.getAvailableCpu() >= requiredCpu && resourceManager.getAvailableMemory() >= requiredMemory) {
-                processWaitingQueue(); // 尝试处理等待队列
-                break;
-            }
-        }
-
-        // 如果等待队列已满，根据优先级删除等待队列中的低优先级作业
-        if (waitingQueue.size() > MAX_WAITING_QUEUE_SIZE) {
-            List<Job> jobsToRemove = new LinkedList<>(waitingQueue);
-            Collections.sort(jobsToRemove, Comparator.comparingInt((Job job) -> job.getContext().getPriority()).reversed().thenComparing((Job job) -> job.getContext().getId()));
-
-            while (waitingQueue.size() > MAX_WAITING_QUEUE_SIZE) {
-                Job jobToRemove = jobsToRemove.remove(0);
-                waitingQueue.remove(jobToRemove);
-                System.out.println("由于容量过大，已从等待队列中删除作业 : " + jobToRemove.getContext().getName());
-            }
-        }
-    }
-
-    private void moveToWaitingQueue(Job job, int requiredCpu, int requiredMemory) {
-        List<Job> jobsToFree = new LinkedList<>(jobQueue.getAllJobs());
-        Collections.sort(jobsToFree, Comparator.comparingInt((Job jobToFree) -> jobToFree.getContext().getPriority()).reversed().thenComparing((Job jobToFree) -> jobToFree.getContext().getId()));
-
-        for (Job jobToFree : jobsToFree) {
-            int jobCpu = resourceEstimator.estimateCpu(jobToFree);
-            int jobMemory = resourceEstimator.estimateMemory(jobToFree);
-            jobQueue.removeJob(jobToFree.getContext().getId());
-            waitingQueue.add(jobToFree);
-            resourceManager.releaseResources(jobCpu, jobMemory);
-            System.out.println("通过将作业移动到等待队列来释放资源 : " + jobToFree.getContext().getName());
-            System.out.println("剩余资源 : CPU=" + resourceManager.getAvailableCpu() + ", Memory=" + resourceManager.getAvailableMemory() + "MB");
-
-            if (resourceManager.getAvailableCpu() >= requiredCpu && resourceManager.getAvailableMemory() >= requiredMemory) {
-                break;
-            }
-        }
-
-        if (resourceManager.allocateResources(requiredCpu, requiredMemory)) {
-            jobQueue.addJob(job);
-            executorService.submit(() -> executeJob(job));
-            System.out.println("创建作业 : " + job.getContext().getName() + " 类型 " + job.getContext().getType());
-            System.out.println("剩余资源 : CPU=" + resourceManager.getAvailableCpu() + ", Memory=" + resourceManager.getAvailableMemory() + "MB");
-        } else {
-            System.out.println("资源仍然不足，作业已添加到等待队列中 : " + job.getContext().getName());
-            waitingQueue.add(job);
-        }
-
-        // 如果等待队列已满，根据优先级删除等待队列中的低优先级作业
-        if (waitingQueue.size() > MAX_WAITING_QUEUE_SIZE) {
-            List<Job> jobsToRemove = new LinkedList<>(waitingQueue);
-            Collections.sort(jobsToRemove, Comparator.comparingInt((Job jobToRemove) -> jobToRemove.getContext().getPriority()).reversed().thenComparing((Job jobToRemove) -> jobToRemove.getContext().getId()));
-
-            while (waitingQueue.size() > MAX_WAITING_QUEUE_SIZE) {
-                Job jobToRemove = jobsToRemove.remove(0);
-                waitingQueue.remove(jobToRemove);
-                System.out.println("由于容量过大，已从等待队列中删除作业 : " + jobToRemove.getContext().getName());
-            }
-        }
-    }
-
     private int loadQueueSizeFromConfig() {
         Properties properties = new Properties();
         try (InputStream input = getClass().getClassLoader().getResourceAsStream("config.properties")) {
@@ -306,4 +249,17 @@ public class JobManagerServiceImpl implements JobManagerService {
     public List<Job> getWaitingQueue() {
         return new LinkedList<>(waitingQueue);
     }
+
+    private void forceRemoveJob() {
+        // 获取当前所有作业，按优先级排序
+        List<Job> jobs = jobQueue.getAllJobs();
+        jobs.sort(Comparator.comparingInt(Job::getPriority).reversed());
+        // 删除优先级最低的作业
+        Job jobToForceRemove = jobs.get(0);
+        // 假设 releaseResources 方法接受两个整数参数，分别表示释放的 CPU 和内存数量
+        resourceManager.releaseResources(jobToForceRemove.getCpuUsage(), jobToForceRemove.getMemoryUsage());
+        jobQueue.removeJob(jobToForceRemove.getId());
+    }
+
+
 }

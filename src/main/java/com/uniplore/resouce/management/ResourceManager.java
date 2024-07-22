@@ -46,21 +46,22 @@ public class ResourceManager {
         if (availableCpu >= cpu && availableMemory >= memory) {
             availableCpu -= cpu;
             availableMemory -= memory;
-            System.out.println("Resources allocated: CPU=" + cpu + ", Memory=" + memory + "MB");
-            System.out.println("Remaining resources: CPU=" + availableCpu + ", Memory=" + availableMemory + "MB");
+            System.out.println("分配资源 : CPU=" + cpu + ", Memory=" + memory + "MB");
+            System.out.println("剩余资源 : CPU=" + availableCpu + ", Memory=" + availableMemory + "MB");
             checkResourceWarning();
             return true;
         } else {
-            System.out.println("Insufficient resources to allocate: CPU=" + cpu + ", Memory=" + memory + "MB");
+            System.out.println("资源分配不足 : CPU=" + cpu + ", Memory=" + memory + "MB");
             return false;
         }
     }
 
-    public synchronized void releaseResources(int cpu, int memory) {
+    public synchronized boolean releaseResources(int cpu, int memory) {
         availableCpu += cpu;
         availableMemory += memory;
-        System.out.println("释放资源: CPU=" + cpu + ", 内存=" + memory + "MB");
-        System.out.println("剩余资源: CPU=" + availableCpu + ", 内存=" + availableMemory + "MB");
+        System.out.println("释放资源 : CPU=" + cpu + ", 内存=" + memory + "MB");
+        System.out.println("剩余资源 : CPU=" + availableCpu + ", 内存=" + availableMemory + "MB");
+        return true;
     }
 
     public synchronized int getAvailableCpu() {
@@ -69,6 +70,12 @@ public class ResourceManager {
 
     public synchronized int getAvailableMemory() {
         return availableMemory;
+    }
+    public synchronized int getAllCpu() {
+        return totalCpu;
+    }
+    public synchronized int getAllMemory() {
+        return totalMemory;
     }
 
     private void checkResourceWarning() {
@@ -86,7 +93,7 @@ public class ResourceManager {
             int usedMemoryPercentage = (int) ((1 - ((double) availableMemory / totalMemory)) * 100);
 
             if (usedCpuPercentage >= cpuThreshold || usedMemoryPercentage >= memoryThreshold) {
-                System.out.println("Resource warning: Available CPU=" + availableCpu + ", Available Memory=" + availableMemory + "MB");
+                System.out.println("资源警告 : Available CPU=" + availableCpu + ", Available Memory=" + availableMemory + "MB");
             }
         } catch (IOException ex) {
             ex.printStackTrace();

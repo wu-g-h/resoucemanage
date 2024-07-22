@@ -7,4 +7,13 @@ import com.uniplore.job.JobContext;
  */
 public interface Job {
     JobContext getContext();
+
+    int getPriority();
+
+
+    int getCpuUsage();
+
+    int getMemoryUsage();
+
+    String getId();
 }

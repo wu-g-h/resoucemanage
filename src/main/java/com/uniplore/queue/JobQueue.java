@@ -2,8 +2,6 @@ package com.uniplore.queue;
 
 import com.uniplore.job.service.Job;
 
-import java.util.Collections;
-import java.util.Comparator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
@@ -20,11 +18,15 @@ public class JobQueue {
         this.maxQueueSize = maxQueueSize;
     }
 
+    public int size() {
+        return jobQueue.size();
+    }
+
     public boolean addJob(Job job) {
         if (jobQueue.size() < maxQueueSize) {
             return jobQueue.offer(job);
         } else {
-            System.out.println("Job queue is full, cannot add job: " + job.getContext().getName());
+            System.out.println("工作队列已满，进入等待队列等待: " + job.getContext().getName());
             return false;
         }
     }
