@@ -8,8 +8,11 @@ import java.io.InputStream;
 import java.util.Properties;
 
 /**
- * 通用作业类，实现作业接口。
+ * @author: wuguihua
+ * @date: 2024/07/23 13:16
+ * @desc: 通用作业类，实现作业接口。
  */
+
 public class GeneralJob implements Job {
     private JobContext context;
     private int cpuUsage;

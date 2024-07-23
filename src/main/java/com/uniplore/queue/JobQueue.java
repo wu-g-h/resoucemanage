@@ -7,8 +7,11 @@ import java.util.List;
 import java.util.Queue;
 
 /**
- * 作业队列类，管理所有作业队列。
+ * @author: wuguihua
+ * @date: 2024/07/23 13:16
+ * @desc: 作业队列类，管理所有作业队列。
  */
+
 public class JobQueue {
     private Queue<Job> jobQueue;
     private int maxQueueSize;

@@ -6,8 +6,11 @@ import com.uniplore.job.service.impl.GeneralJob;
 import com.uniplore.job.service.impl.SimpleJob;
 
 /**
- * 作业工厂类，创建不同类型的作业实例。
+ * @author: wuguihua
+ * @date: 2024/07/23 13:16
+ * @desc: 作业工厂类，创建不同类型的作业实例。
  */
+
 public class JobFactory {
     public static Job createJob(JobContext context) {
         switch (context.getType()) {

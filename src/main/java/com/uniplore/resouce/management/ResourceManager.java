@@ -1,11 +1,17 @@
 package com.uniplore.resouce.management;
 
-import java.util.Properties;
-import java.io.InputStream;
+import com.uniplore.job.service.JobManagerService;
+
 import java.io.IOException;
+import java.io.InputStream;
+import java.util.Properties;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
- * 资源管理类，单例模式。
+ * @author: wuguihua
+ * @date: 2024/07/23 13:16
+ * @desc: 资源管理类，管理所有资源。
  */
 public class ResourceManager {
     private int totalCpu;
@@ -13,16 +19,27 @@ public class ResourceManager {
     private int availableCpu;
     private int availableMemory;
     private static ResourceManager instance;
+    private static final Object lock = new Object();
+    private final Lock resourceLock = new ReentrantLock();
+    private JobManagerService jobManagerService;
 
     private ResourceManager() {
         loadResourceConfig();
     }
 
-    public static synchronized ResourceManager getInstance() {
+    public static ResourceManager getInstance() {
         if (instance == null) {
-            instance = new ResourceManager();
+            synchronized (lock) {
+                if (instance == null) {
+                    instance = new ResourceManager();
+                }
+            }
         }
         return instance;
+    }
+
+    public void setJobManagerService(JobManagerService jobManagerService) {
+        this.jobManagerService = jobManagerService;
     }
 
     private void loadResourceConfig() {
@@ -42,26 +59,35 @@ public class ResourceManager {
         }
     }
 
-    public synchronized boolean allocateResources(int cpu, int memory) {
-        if (availableCpu >= cpu && availableMemory >= memory) {
-            availableCpu -= cpu;
-            availableMemory -= memory;
-            System.out.println("分配资源 : CPU=" + cpu + ", Memory=" + memory + "MB");
-            System.out.println("剩余资源 : CPU=" + availableCpu + ", Memory=" + availableMemory + "MB");
-            checkResourceWarning();
-            return true;
-        } else {
-            System.out.println("资源分配不足 : CPU=" + cpu + ", Memory=" + memory + "MB");
-            return false;
+    public boolean allocateResources(int cpu, int memory) {
+        resourceLock.lock();
+        try {
+            if (availableCpu >= cpu && availableMemory >= memory) {
+                availableCpu -= cpu;
+                availableMemory -= memory;
+                System.out.println("分配资源 : CPU=" + cpu + ", Memory=" + memory + "MB");
+                System.out.println("剩余资源 : CPU=" + availableCpu + ", Memory=" + availableMemory + "MB");
+                return true;
+            } else {
+                System.out.println("资源不足，无法分配资源");
+                return false;
+            }
+        } finally {
+            resourceLock.unlock();
         }
     }
 
-    public synchronized boolean releaseResources(int cpu, int memory) {
-        availableCpu += cpu;
-        availableMemory += memory;
-        System.out.println("释放资源 : CPU=" + cpu + ", 内存=" + memory + "MB");
-        System.out.println("剩余资源 : CPU=" + availableCpu + ", 内存=" + availableMemory + "MB");
-        return true;
+    public void releaseResources(int cpu, int memory) {
+        resourceLock.lock();
+        try {
+            availableCpu = Math.min(totalCpu, availableCpu + cpu);
+            availableMemory = Math.min(totalMemory, availableMemory + memory);
+            System.out.println("释放资源 : CPU=" + cpu + ", 内存=" + memory + "MB");
+            System.out.println("剩余资源 : CPU=" + availableCpu + ", 内存=" + availableMemory + "MB");
+        } finally {
+            resourceLock.unlock();
+        }
+        jobManagerService.processWaitingQueue();
     }
 
     public synchronized int getAvailableCpu() {
@@ -71,9 +97,11 @@ public class ResourceManager {
     public synchronized int getAvailableMemory() {
         return availableMemory;
     }
+
     public synchronized int getAllCpu() {
         return totalCpu;
     }
+
     public synchronized int getAllMemory() {
         return totalMemory;
     }

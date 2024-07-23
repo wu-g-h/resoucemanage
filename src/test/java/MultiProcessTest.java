@@ -48,7 +48,7 @@ public class MultiProcessTest {
 
         executorService.shutdown();
         while (!executorService.isTerminated()) {
-            Thread.sleep(1000);
+            Thread.sleep(20000);
         }
     }
 }

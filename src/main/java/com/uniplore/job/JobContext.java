@@ -1,5 +1,10 @@
 package com.uniplore.job;
 
+/**
+ * @author: wuguihua
+ * @date: 2024/07/23 13:16
+ * @desc: 作业内容类，用来完成作业的属性设置以及获取
+ */
 public class JobContext {
     private String id;
     private String name;
