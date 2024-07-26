@@ -1,9 +1,9 @@
 package com.uniplore.job;
 
+import java.util.concurrent.Future;
+
 /**
- * @author: wuguihua
- * @date: 2024/07/23 13:16
- * @desc: 作业内容类，用来完成作业的属性设置以及获取
+ * 作业内容类，用来完成作业的属性设置以及获取
  */
 public class JobContext {
     private String id;
@@ -14,6 +14,7 @@ public class JobContext {
     private String content;
     private int processId; // 进程ID
     private int executionTime; // 执行时间（秒）
+    private Future<?> future; // 用于跟踪作业执行状态的 Future 对象
 
     public JobContext(String id, String name, String user, int priority, String type, String content, int processId, int executionTime) {
         this.id = id;
@@ -91,7 +92,11 @@ public class JobContext {
         this.executionTime = executionTime;
     }
 
+    public Future<?> getFuture() {
+        return future;
+    }
 
-
-
+    public void setFuture(Future<?> future) {
+        this.future = future;
+    }
 }

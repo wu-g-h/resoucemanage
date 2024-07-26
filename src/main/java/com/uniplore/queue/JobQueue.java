@@ -7,11 +7,8 @@ import java.util.List;
 import java.util.Queue;
 
 /**
- * @author: wuguihua
- * @date: 2024/07/23 13:16
- * @desc: 作业队列类，管理所有作业队列。
+ * 作业队列类，管理所有作业队列。
  */
-
 public class JobQueue {
     private Queue<Job> jobQueue;
     private int maxQueueSize;
@@ -29,9 +26,13 @@ public class JobQueue {
         if (jobQueue.size() < maxQueueSize) {
             return jobQueue.offer(job);
         } else {
-            System.out.println("工作队列已满，进入等待队列等待: " + job.getContext().getName());
+            System.out.println("工作队列已满，无法添加作业: " + job.getContext().getName());
             return false;
         }
+    }
+
+    public boolean forceAddJob(Job job) {
+        return jobQueue.offer(job);
     }
 
     public boolean removeJob(String jobId) {
@@ -68,5 +69,9 @@ public class JobQueue {
 
     public Job pollJob() {
         return jobQueue.poll();
+    }
+
+    public Job peekJob() {
+        return jobQueue.peek();
     }
 }

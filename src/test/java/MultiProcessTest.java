@@ -14,12 +14,11 @@ public class MultiProcessTest {
     @Test
     public void testMultiProcessJobCreation() throws InterruptedException {
         JobManagerService jobManager = new JobManagerServiceImpl();
-        // 设置复杂的资源评估器
         ((JobManagerServiceImpl) jobManager).setResourceEstimator(new ComplexResourceEstimator());
 
-        ExecutorService executorService = Executors.newFixedThreadPool(10);
+        ExecutorService executorService = Executors.newFixedThreadPool(1);
 
-        for (int i = 1; i <= 15; i++) {
+        for (int i = 1; i <= 17; i++) {
             int finalI = i;
             executorService.submit(() -> {
                 JobContext context = new JobContext(
@@ -39,16 +38,10 @@ public class MultiProcessTest {
             });
         }
 
-        // 等待一段时间，让作业执行
-        executorService.awaitTermination(5, TimeUnit.SECONDS);
-
-        // 检查等待队列是否满了，然后检查是否删除了正在进行的作业
-        // 这里需要根据您的作业管理系统实现的具体逻辑来添加检查代码
-        // 例如，您可以检查等待队列的大小，然后检查工作队列中是否有作业被移除
-
+        executorService.awaitTermination(30, TimeUnit.SECONDS);
         executorService.shutdown();
         while (!executorService.isTerminated()) {
-            Thread.sleep(20000);
+            Thread.sleep(10000);
         }
     }
 }

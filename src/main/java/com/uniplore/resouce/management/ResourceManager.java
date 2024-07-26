@@ -1,17 +1,18 @@
 package com.uniplore.resouce.management;
 
+import com.uniplore.job.service.Job;
 import com.uniplore.job.service.JobManagerService;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
 /**
- * @author: wuguihua
- * @date: 2024/07/23 13:16
- * @desc: 资源管理类，管理所有资源。
+ * 资源管理类，管理所有资源。
  */
 public class ResourceManager {
     private int totalCpu;
@@ -22,9 +23,11 @@ public class ResourceManager {
     private static final Object lock = new Object();
     private final Lock resourceLock = new ReentrantLock();
     private JobManagerService jobManagerService;
+    private List<Job> runningJobs;
 
     private ResourceManager() {
         loadResourceConfig();
+        runningJobs = new ArrayList<>();
     }
 
     public static ResourceManager getInstance() {
@@ -59,12 +62,13 @@ public class ResourceManager {
         }
     }
 
-    public boolean allocateResources(int cpu, int memory) {
+    public boolean allocateResources(Job job, int cpu, int memory) {
         resourceLock.lock();
         try {
             if (availableCpu >= cpu && availableMemory >= memory) {
                 availableCpu -= cpu;
                 availableMemory -= memory;
+                runningJobs.add(job);
                 System.out.println("分配资源 : CPU=" + cpu + ", Memory=" + memory + "MB");
                 System.out.println("剩余资源 : CPU=" + availableCpu + ", Memory=" + availableMemory + "MB");
                 return true;
@@ -77,17 +81,22 @@ public class ResourceManager {
         }
     }
 
-    public void releaseResources(int cpu, int memory) {
+    public void releaseResources(Job job, int cpu, int memory) {
         resourceLock.lock();
         try {
             availableCpu = Math.min(totalCpu, availableCpu + cpu);
             availableMemory = Math.min(totalMemory, availableMemory + memory);
+            runningJobs.remove(job);
             System.out.println("释放资源 : CPU=" + cpu + ", 内存=" + memory + "MB");
             System.out.println("剩余资源 : CPU=" + availableCpu + ", 内存=" + availableMemory + "MB");
         } finally {
             resourceLock.unlock();
         }
         jobManagerService.processWaitingQueue();
+    }
+
+    public List<Job> getRunningJobs() {
+        return new ArrayList<>(runningJobs);
     }
 
     public synchronized int getAvailableCpu() {
